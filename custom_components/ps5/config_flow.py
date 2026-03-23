@@ -1,10 +1,9 @@
-import asyncio
 import aiohttp
 import logging
 import voluptuous as vol
 
 from homeassistant import config_entries
-from homeassistant.components import zeroconf
+from homeassistant.components import zeroconf as ha_zeroconf
 from homeassistant.data_entry_flow import FlowResult
 from .const import DOMAIN, CONF_HOST, CONF_PORT, DEFAULT_PORT
 
@@ -41,15 +40,10 @@ class PS5ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return PS5OptionsFlow(config_entry)
 
     async def async_step_user(self, user_input=None) -> FlowResult:
-        found = await self._discover_via_mdns()
-        if found:
-            self._discovered_host = found["host"]
-            self._discovered_port = found["port"]
-            return await self.async_step_confirm()
-        return await self.async_step_manual(error="not_found")
+        return await self.async_step_manual()
 
     async def async_step_zeroconf(
-        self, discovery_info: zeroconf.ZeroconfServiceInfo
+        self, discovery_info: ha_zeroconf.ZeroconfServiceInfo
     ) -> FlowResult:
         """Handle discovery by HA's zeroconf integration."""
         host = discovery_info.host
@@ -65,48 +59,6 @@ class PS5ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._discovered_host = host
         self._discovered_port = port
         return await self.async_step_confirm()
-
-    async def _discover_via_mdns(self) -> dict | None:
-        aiozc = await zeroconf.async_get_async_instance(self.hass)
-        discovered = []
-        found_event = asyncio.Event()
-        loop = asyncio.get_event_loop()
-
-        from zeroconf.asyncio import AsyncServiceBrowser
-        from zeroconf import ServiceStateChange
-
-        def on_service_state_change(zeroconf_inst, service_type, name, state_change):
-            if state_change != ServiceStateChange.Added:
-                return
-
-            async def _resolve():
-                info = await aiozc.async_get_service_info(service_type, name)
-                if not info:
-                    return
-                addresses = info.parsed_addresses()
-                if addresses:
-                    discovered.append({"host": addresses[0]})
-                    found_event.set()
-
-            loop.create_task(_resolve())
-
-        browser = AsyncServiceBrowser(
-            aiozc.zeroconf,
-            ["_http._tcp.local."],
-            handlers=[on_service_state_change],
-        )
-        try:
-            await asyncio.wait_for(found_event.wait(), timeout=4.0)
-        except asyncio.TimeoutError:
-            pass
-        finally:
-            await browser.async_cancel()
-
-        for candidate in discovered:
-            result = await _probe_voidshell(candidate["host"], DEFAULT_PORT)
-            if result is not None:
-                return {"host": candidate["host"], "port": DEFAULT_PORT}
-        return None
 
     async def async_step_confirm(self, user_input=None) -> FlowResult:
         if user_input is not None:
