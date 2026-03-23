@@ -1,0 +1,7 @@
+DOMAIN = "ps5"
+CONF_HOST = "host"
+CONF_PORT = "port"
+DEFAULT_PORT = 7007
+POLL_INTERVAL = 10
+
+EVENT_GAME_CHANGED = f"{DOMAIN}_game_changed"
