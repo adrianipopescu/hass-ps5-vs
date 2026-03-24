@@ -7,9 +7,10 @@ _DDP_PORT = 9302
 _DDP_MSG = b"SRCH * HTTP/1.1\ndevice-discovery-protocol-version:00030010\n"
 
 
-async def discover_ps5() -> dict | None:
-    """Broadcast a DDP search and return the first PS5 that responds."""
+async def discover_ps5(host: str | None = None) -> dict | None:
+    """DDP search — unicast to host if given, otherwise broadcast."""
     loop = asyncio.get_running_loop()
+    target = (host, _DDP_PORT) if host else ("255.255.255.255", _DDP_PORT)
     found: asyncio.Future = loop.create_future()
     transport = None
 
@@ -41,7 +42,7 @@ async def discover_ps5() -> dict | None:
             local_addr=("0.0.0.0", 0),
             allow_broadcast=True,
         )
-        transport.sendto(_DDP_MSG, ("255.255.255.255", _DDP_PORT))
+        transport.sendto(_DDP_MSG, target)
         return await asyncio.wait_for(asyncio.shield(found), timeout=3.0)
     except (asyncio.TimeoutError, asyncio.CancelledError):
         return None

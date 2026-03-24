@@ -51,6 +51,20 @@ class PS5ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return await self.async_step_confirm()
         return await self.async_step_manual()
 
+    async def async_step_dhcp(self, discovery_info) -> FlowResult:
+        host = discovery_info.ip
+        from .discovery import discover_ps5 as _ddp
+        discovered = await _ddp(host=host)
+        if discovered:
+            self._discovered_host = discovered["host"]
+            self._discovered_mac = discovered["mac"]
+            self._discovered_name = discovered["name"]
+        else:
+            self._discovered_host = host
+        await self.async_set_unique_id(self._discovered_mac or self._discovered_host)
+        self._abort_if_unique_id_configured()
+        return await self.async_step_confirm()
+
     async def async_step_integration_discovery(self, discovery_info: dict) -> FlowResult:
         self._discovered_host = discovery_info["host"]
         self._discovered_mac = discovery_info["mac"]
