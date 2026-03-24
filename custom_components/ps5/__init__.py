@@ -1,7 +1,7 @@
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from .const import DOMAIN, CONF_HOST, CONF_PORT, DEFAULT_PORT
+from .const import DOMAIN, CONF_HOST, CONF_PORT, CONF_MAC, DEFAULT_PORT
 from .coordinator import PS5Coordinator
 
 PLATFORMS = ["sensor", "binary_sensor", "media_player", "image", "button", "switch"]
@@ -12,6 +12,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass,
         host=entry.data[CONF_HOST],
         port=entry.data.get(CONF_PORT, DEFAULT_PORT),
+        mac=entry.data.get(CONF_MAC, ""),
     )
     await coordinator.async_config_entry_first_refresh()
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator

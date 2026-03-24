@@ -9,9 +9,10 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class PS5Coordinator(DataUpdateCoordinator):
-    def __init__(self, hass: HomeAssistant, host: str, port: int):
+    def __init__(self, hass: HomeAssistant, host: str, port: int, mac: str = ""):
         self.host = host
         self.port = port
+        self.mac = mac
         self._available = True
         self._last_game: str | None = None
         super().__init__(

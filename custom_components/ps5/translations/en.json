@@ -3,7 +3,7 @@
     "step": {
       "confirm": {
         "title": "PS5 Found",
-        "description": "Found a PlayStation 5 at **{host}:{port}**. Add it to Home Assistant?"
+        "description": "Found **{name}** at {host}. Add it to Home Assistant?"
       },
       "manual": {
         "title": "PlayStation 5 Setup",

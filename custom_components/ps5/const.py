@@ -1,6 +1,7 @@
 DOMAIN = "ps5"
 CONF_HOST = "host"
 CONF_PORT = "port"
+CONF_MAC = "mac"
 DEFAULT_PORT = 7007
 POLL_INTERVAL = 10
 
