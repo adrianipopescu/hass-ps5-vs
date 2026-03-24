@@ -1,4 +1,3 @@
-import asyncio
 import aiohttp
 import logging
 import voluptuous as vol
@@ -6,11 +5,9 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResult
 from .const import DOMAIN, CONF_HOST, CONF_PORT, CONF_MAC, DEFAULT_PORT
+from .discovery import discover_ps5
 
 _LOGGER = logging.getLogger(__name__)
-
-_DDP_PORT = 9302
-_DDP_MSG = b"SRCH * HTTP/1.1\ndevice-discovery-protocol-version:00030010\n"
 
 
 async def _probe_voidshell(host: str, port: int, timeout: float = 3.0) -> dict | None:
@@ -29,50 +26,6 @@ async def _probe_voidshell(host: str, port: int, timeout: float = 3.0) -> dict |
     return None
 
 
-async def _discover_via_ddp() -> dict | None:
-    loop = asyncio.get_running_loop()
-    found: asyncio.Future = loop.create_future()
-    transport = None
-
-    class _Proto(asyncio.DatagramProtocol):
-        def datagram_received(self, data, addr):
-            if found.done():
-                return
-            text = data.decode("utf-8", errors="ignore")
-            if "host-type:PS5" not in text:
-                return
-            info = {}
-            for line in text.splitlines():
-                if ":" in line:
-                    k, _, v = line.partition(":")
-                    info[k.strip().lower()] = v.strip()
-            found.set_result({
-                "host": addr[0],
-                "mac": info.get("host-id", ""),
-                "name": info.get("host-name", "PS5"),
-            })
-
-        def error_received(self, exc):
-            if not found.done():
-                found.cancel()
-
-    try:
-        transport, _ = await loop.create_datagram_endpoint(
-            _Proto,
-            local_addr=("0.0.0.0", 0),
-            allow_broadcast=True,
-        )
-        transport.sendto(_DDP_MSG, ("255.255.255.255", _DDP_PORT))
-        return await asyncio.wait_for(asyncio.shield(found), timeout=3.0)
-    except (asyncio.TimeoutError, asyncio.CancelledError):
-        return None
-    except Exception:
-        return None
-    finally:
-        if transport:
-            transport.close()
-
-
 class PS5ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
@@ -88,7 +41,7 @@ class PS5ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return PS5OptionsFlow(config_entry)
 
     async def async_step_user(self, user_input=None) -> FlowResult:
-        discovered = await _discover_via_ddp()
+        discovered = await discover_ps5()
         if discovered:
             self._discovered_host = discovered["host"]
             self._discovered_mac = discovered["mac"]
@@ -97,6 +50,14 @@ class PS5ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self._abort_if_unique_id_configured()
             return await self.async_step_confirm()
         return await self.async_step_manual()
+
+    async def async_step_integration_discovery(self, discovery_info: dict) -> FlowResult:
+        self._discovered_host = discovery_info["host"]
+        self._discovered_mac = discovery_info["mac"]
+        self._discovered_name = discovery_info["name"]
+        await self.async_set_unique_id(self._discovered_mac or self._discovered_host)
+        self._abort_if_unique_id_configured()
+        return await self.async_step_confirm()
 
     async def async_step_confirm(self, user_input=None) -> FlowResult:
         if user_input is not None:
