@@ -30,8 +30,7 @@ A local-polling Home Assistant integration for jailbroken PS5 consoles running t
 
 1. Go to **Settings → Devices & Services → Add Integration**
 2. Search for **PlayStation 5**
-3. HA will scan your network for a PS5 automatically
-4. If not found, enter the IP address manually (default port: `7007`)
+3. Enter your PS5's IP address and port (default: `7007`)
 
 > The port field is optional — only change it if you've configured VoidShell to run on a non-default port.
 

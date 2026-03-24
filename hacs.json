@@ -1,6 +1,5 @@
 {
   "name": "PlayStation 5",
   "content_in_root": false,
-  "filename": "ps5.zip",
   "homeassistant": "2024.3.0"
 }
