@@ -89,7 +89,7 @@ class PS5ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="manual",
             data_schema=vol.Schema({
-                vol.Required(CONF_HOST, default="192.168.1.245"): str,
+                vol.Required(CONF_HOST, default=""): str,
                 vol.Optional(CONF_PORT, default=DEFAULT_PORT): vol.All(
                     vol.Coerce(int), vol.Range(min=1, max=65535)
                 ),
