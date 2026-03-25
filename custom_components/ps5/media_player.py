@@ -40,10 +40,12 @@ class PS5MediaPlayer(CoordinatorEntity, MediaPlayerEntity):
 
     @property
     def available(self) -> bool:
-        return self.coordinator.available and super().available
+        return super().available
 
     @property
     def _data(self) -> dict:
+        if not self.coordinator.available:
+            return {}
         return self.coordinator.data or {}
 
     # -------------------------------------------------------------------------
@@ -51,6 +53,8 @@ class PS5MediaPlayer(CoordinatorEntity, MediaPlayerEntity):
     # -------------------------------------------------------------------------
     @property
     def state(self) -> MediaPlayerState:
+        if not self.coordinator.available:
+            return MediaPlayerState.OFF
         app_state = self._data.get("app_state", "").lower()
         if app_state in ("suspended", "standby", "rest"):
             return MediaPlayerState.STANDBY

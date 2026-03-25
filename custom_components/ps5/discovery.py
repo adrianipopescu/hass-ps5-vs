@@ -1,7 +1,29 @@
 import asyncio
 import logging
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
 
 _LOGGER = logging.getLogger(__name__)
+
+_CACHE_KEY = "ps5.ddp_cache"
+_CACHE_VERSION = 1
+
+
+async def save_ddp_cache(hass: "HomeAssistant", discovered: dict) -> None:
+    from homeassistant.helpers.storage import Store
+    store = Store(hass, _CACHE_VERSION, _CACHE_KEY)
+    cache = await store.async_load() or {}
+    key = discovered.get("mac") or f"host_{discovered['host']}"
+    cache[key] = {"host": discovered["host"], "name": discovered.get("name", "PS5")}
+    await store.async_save(cache)
+
+
+async def load_ddp_cache(hass: "HomeAssistant") -> dict:
+    from homeassistant.helpers.storage import Store
+    store = Store(hass, _CACHE_VERSION, _CACHE_KEY)
+    return await store.async_load() or {}
 
 _DDP_PORT = 9302
 _DDP_MSG = b"SRCH * HTTP/1.1\ndevice-discovery-protocol-version:00030010\n"

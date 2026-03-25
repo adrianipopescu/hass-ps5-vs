@@ -19,6 +19,7 @@ from .device_info import ps5_device_info
 @dataclass
 class PS5SensorDescription(SensorEntityDescription):
     value_fn: Callable[[dict, str, int], any] | None = None
+    retain_when_offline: bool = False
 
 
 SENSOR_DESCRIPTIONS: list[PS5SensorDescription] = [
@@ -29,6 +30,7 @@ SENSOR_DESCRIPTIONS: list[PS5SensorDescription] = [
         native_unit_of_measurement="Games",
         icon="mdi:library",
         value_fn=lambda d, h, p: d.get("total"),
+        retain_when_offline=True,
     ),
     PS5SensorDescription(
         key="ps5_games",
@@ -36,6 +38,7 @@ SENSOR_DESCRIPTIONS: list[PS5SensorDescription] = [
         native_unit_of_measurement="Games",
         icon="mdi:sony-playstation",
         value_fn=lambda d, h, p: d.get("ps5"),
+        retain_when_offline=True,
     ),
     PS5SensorDescription(
         key="ps4_games",
@@ -43,6 +46,7 @@ SENSOR_DESCRIPTIONS: list[PS5SensorDescription] = [
         native_unit_of_measurement="Games",
         icon="mdi:gamepad-square",
         value_fn=lambda d, h, p: d.get("ps4"),
+        retain_when_offline=True,
     ),
 
     # --- Diagnostic entities ---
@@ -113,6 +117,8 @@ class PS5Sensor(CoordinatorEntity, SensorEntity):
 
     @property
     def available(self) -> bool:
+        if self.entity_description.retain_when_offline:
+            return self.coordinator.data is not None and super().available
         return self.coordinator.available and super().available
 
     @property

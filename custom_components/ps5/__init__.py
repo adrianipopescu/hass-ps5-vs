@@ -6,7 +6,7 @@ from homeassistant.helpers.event import async_track_time_interval
 
 from .const import DOMAIN, CONF_HOST, CONF_PORT, CONF_MAC, DEFAULT_PORT
 from .coordinator import PS5Coordinator
-from .discovery import discover_ps5
+from .discovery import discover_ps5, save_ddp_cache, load_ddp_cache
 
 PLATFORMS = ["sensor", "binary_sensor", "media_player", "image", "button", "switch"]
 
@@ -14,12 +14,38 @@ PLATFORMS = ["sensor", "binary_sensor", "media_player", "image", "button", "swit
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     async def _scan(_now=None) -> None:
         discovered = await discover_ps5()
+
+        # Broadcast failed (cross-subnet etc.) — try unicast to cached hosts
+        if not discovered:
+            cache = await load_ddp_cache(hass)
+            for entry_data in cache.values():
+                result = await discover_ps5(host=entry_data["host"])
+                if result:
+                    discovered = result
+                    break
+
         if not discovered:
             return
-        configured = {
-            e.data.get(CONF_HOST)
-            for e in hass.config_entries.async_entries(DOMAIN)
-        }
+
+        await save_ddp_cache(hass, discovered)
+
+        # Update config entry host if PS5 moved to a new IP
+        for entry in hass.config_entries.async_entries(DOMAIN):
+            if (
+                entry.data.get(CONF_MAC)
+                and entry.data.get(CONF_MAC) == discovered.get("mac")
+                and entry.data.get(CONF_HOST) != discovered["host"]
+            ):
+                _LOGGER.info(
+                    "PS5: IP changed from %s to %s, updating config entry",
+                    entry.data[CONF_HOST],
+                    discovered["host"],
+                )
+                hass.config_entries.async_update_entry(
+                    entry, data={**entry.data, CONF_HOST: discovered["host"]}
+                )
+
+        configured = {e.data.get(CONF_HOST) for e in hass.config_entries.async_entries(DOMAIN)}
         if discovered["host"] in configured:
             return
         if any(f["handler"] == DOMAIN for f in hass.config_entries.flow.async_progress()):
