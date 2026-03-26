@@ -80,13 +80,6 @@ SENSOR_DESCRIPTIONS: list[PS5SensorDescription] = [
         value_fn=lambda d, h, p: d.get("fan_target"),
     ),
     PS5SensorDescription(
-        key="uptime",
-        name="PS5 Uptime",
-        icon="mdi:clock-outline",
-        entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=lambda d, h, p: d.get("sys_uptime"),
-    ),
-    PS5SensorDescription(
         key="sentinel_state",
         name="PS5 Sentinel State",
         icon="mdi:shield-check",
